@@ -1,0 +1,197 @@
+@startuml ERD_پیام‌رسان_سهیم
+
+!define ERD_COLOR_PRIMARY #2E7D32
+!define ERD_COLOR_SECONDARY #1976D2
+!define ERD_COLOR_ACCENT #F57C00
+!define ERD_COLOR_BACKGROUND #FFFFFF
+!define ERD_COLOR_BORDER #424242
+
+skinparam package {
+    BackgroundColor #F5F5F5
+    BorderColor ERD_COLOR_BORDER
+    FontSize 14
+    FontStyle bold
+}
+
+skinparam entity {
+    BackgroundColor ERD_COLOR_BACKGROUND
+    BorderColor ERD_COLOR_PRIMARY
+    BorderThickness 2
+    FontSize 12
+    FontName "Arial"
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color ERD_COLOR_SECONDARY
+    Thickness 2
+    FontSize 10
+    FontName "Arial"
+}
+
+skinparam note {
+    BackgroundColor #FFF9C4
+    BorderColor ERD_COLOR_ACCENT
+    FontSize 10
+    FontName "Arial"
+}
+
+skinparam legend {
+    BackgroundColor #F5F5F5
+    BorderColor ERD_COLOR_BORDER
+    FontSize 10
+    FontName "Arial"
+}
+
+skinparam linetype ortho
+skinparam shadowing true
+skinparam monochrome false
+skinparam roundcorner 5
+skinparam handwritten true
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classFontStyle bold
+skinparam entityIconSize 0
+skinparam arrowColor ERD_COLOR_SECONDARY
+skinparam classBackgroundColor ERD_COLOR_BACKGROUND
+skinparam classBorderColor ERD_COLOR_PRIMARY
+skinparam classAttributeFontSize 10
+skinparam classAttributeFontColor #424242
+
+title <b>ERD - پیام‌رسان سهیم</b>
+
+package "Database Schema" {
+    entity "User\n(کاربر)" as User {
+        * id : BIGINT <<PK, AI>>
+        --
+        username : VARCHAR(150) <<UNIQUE>>
+        first_name : VARCHAR(100)
+        last_name : VARCHAR(100)
+        * phone_number : VARCHAR(20) <<UNIQUE, NOT NULL>>
+        profile_picture : VARCHAR(255)
+        * created_at : TIMESTAMP
+        * updated_at : TIMESTAMP
+        --
+        <b>Indexes:</b>
+        idx_user_phone_number
+        idx_user_username
+    }
+    
+    entity "OTP\n(کد یکبار مصرف)" as OTP {
+        * id : BIGINT <<PK, AI>>
+        --
+        * phone_number : VARCHAR(20) <<INDEX, NOT NULL>>
+        * code : VARCHAR(5) <<NOT NULL>>
+        * expires_at : TIMESTAMP <<NOT NULL>>
+        * is_used : BOOLEAN <<DEFAULT: FALSE>>
+        * created_at : TIMESTAMP
+        --
+        <b>Indexes:</b>
+        idx_otp_phone_number
+    }
+    
+    entity "Chat\n(چت)" as Chat {
+        * id : BIGINT <<PK, AI>>
+        --
+        * user1_id : BIGINT <<FK, INDEX, NOT NULL>>
+        * user2_id : BIGINT <<FK, INDEX, NOT NULL>>
+        last_message_id : BIGINT <<FK, NULL>>
+        last_message_at : TIMESTAMP <<NULL>>
+        * created_at : TIMESTAMP
+        * updated_at : TIMESTAMP
+        --
+        <b>Indexes:</b>
+        idx_chat_user1
+        idx_chat_user2
+        <b>Unique:</b>
+        (user1_id, user2_id)
+        WHERE user1_id < user2_id
+        --
+        <b>References:</b>
+        User.id (user1_id)
+        User.id (user2_id)
+        Message.id (last_message_id)
+    }
+    
+    entity "Message\n(پیام)" as Message {
+        * id : BIGINT <<PK, AI>>
+        --
+        * chat_id : BIGINT <<FK, INDEX, NOT NULL>>
+        * sender_id : BIGINT <<FK, INDEX, NOT NULL>>
+        content : TEXT <<NULL>>
+        * message_type : VARCHAR(20) <<ENUM: text|image|file>>
+        file_path : VARCHAR(255) <<NULL>>
+        * is_read : BOOLEAN <<DEFAULT: FALSE>>
+        * read_by_user_id : BIGINT <<FK, NULL, INDEX>>
+        * read_at : TIMESTAMP <<NULL>>
+        * created_at : TIMESTAMP <<INDEX>>
+        * updated_at : TIMESTAMP
+        --
+        <b>Indexes:</b>
+        idx_message_chat
+        idx_message_sender
+        idx_message_created_at
+        idx_message_read_by
+        --
+        <b>References:</b>
+        Chat.id
+        User.id (sender_id)
+        User.id (read_by_user_id)
+    }
+}
+
+' روابط اصلی
+User ||--o{ Chat : "user1\n(N:1)"
+User ||--o{ Chat : "user2\n(N:1)"
+User ||--o{ Message : "sends\n(N:1)"
+User ||--o{ Message : "reads\n(N:1)"
+Chat ||--o{ Message : "contains\n(1:N)"
+Chat }o--|| Message : "last_message\n(N:1)"
+
+note right of User
+    **محدودیت‌ها:**
+    - phone_number یکتا است
+    - username یکتا است
+end note
+
+note right of Chat
+    **محدودیت‌ها:**
+    - UNIQUE (user1_id, user2_id)
+    WHERE user1_id < user2_id
+    - هر دو کاربر فقط یک چت دارند
+end note
+
+note right of Message
+    **انواع پیام:**
+    - text: پیام متنی
+    - image: تصویر
+    - file: فایل
+    --
+    **خوانده شدن:**
+    - read_by_user_id: کاربری که
+    پیام را خوانده
+    - read_at: زمان خواندن
+    - is_read: وضعیت خوانده شدن
+end note
+
+note right of OTP
+    **محدودیت‌ها:**
+    - هر OTP فقط یکبار
+    قابل استفاده است
+    - کد 5 رقمی
+    - انقضا: 5 دقیقه
+end note
+
+legend right
+    |<b>نمادها:</b>|
+    |<b>PK</b> = Primary Key|
+    |<b>FK</b> = Foreign Key|
+    |<b>UK</b> = Unique Key|
+    |<b>1:N</b> = One-to-Many|
+    |<b>N:1</b> = Many-to-One|
+    |<b>N:M</b> = Many-to-Many|
+endlegend
+
+@enduml
+
