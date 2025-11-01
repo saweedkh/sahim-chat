@@ -1,0 +1,52 @@
+services:
+  db:
+    restart: always
+    image: postgres:16
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: chat_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sahim_db_password
+    command: >
+      postgres
+      -c log_min_messages=ERROR
+      -c client_min_messages=ERROR
+      -c log_error_verbosity=terse
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    restart: always
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app
+      - ./local_entrypoint.sh:/app/entrypoint.sh
+    entrypoint: ["bash", "/app/entrypoint.sh"]
+    ports:
+      - "8080:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mynetwork
+    env_file:
+      - ./.env
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  mynetwork:
+    driver: bridge

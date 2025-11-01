@@ -19,6 +19,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         db_index=True,
     )
     username = models.CharField(
+        max_length=150,
         verbose_name=_('نام کاربری'),
         unique=True,
         db_index=True,
@@ -97,7 +98,7 @@ class OTP(TimeStampedModel):
     )
     is_used = models.BooleanField(
         default=False,
-        verbose_name=_('وضیت اسعتفاده'),
+        verbose_name=_('وضعیت استفاده'),
     )
 
     class Meta:
