@@ -67,9 +67,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         ]
 
     def __str__(self):
-        if self.username:
-            return f"{self.username} ({self.phone_number})"
-        return self.phone_number
+        return str(self.phone_number)
 
     @property
     def fullname(self):
@@ -82,6 +80,13 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
 
     def get_short_name(self):
         return self.first_name or str(self.phone_number)
+
+    def get_profile_picture(self, request=None):
+        if self.profile_picture:
+            if request:
+                return request.build_absolute_uri(self.profile_picture)
+            return self.profile_picture
+        return None
 
 
 class OTP(TimeStampedModel):
@@ -102,6 +107,8 @@ class OTP(TimeStampedModel):
     )
 
     class Meta:
+        verbose_name = _('کد یکبار مصرف')
+        verbose_name_plural = _('کد های یکبار مصرف')
         indexes = [
             models.Index(fields=['phone_number'], name='idx_otp_phone_number'),
         ]
