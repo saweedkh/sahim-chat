@@ -83,6 +83,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # third party apps
+    'channels',
+    'channels_redis',
     'phonenumber_field',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -129,6 +131,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 
 # Database
@@ -239,3 +242,40 @@ AUDITLOG_DISABLE_ON_RAW_SAVE = False
 
 # OTP settings
 OTP_EXPIRE_TIME = env.int('OTP_EXPIRE_TIME', default=5)
+
+# Channels settings
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [env('REDIS_URL', default=('redis', 6379))],
+        },
+    },
+}
+
+# OpenAPI / drf-spectacular configuration
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Sahim Chat API',
+    'DESCRIPTION': 'OpenAPI schema for Sahim Chat backend used by web/mobile clients.',
+    'VERSION': '1.0.0',
+    'SCHEMA_PATH_PREFIX': r'/api/v1',
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_COERCE_PATH_PK': True,
+    'SECURITY': [
+        {'jwtAuth': []},
+        {'JWT': []},
+        {},
+    ],
+    'SECURITY_SCHEMES': {
+        'JWT': {
+            'type': 'http',
+            'scheme': 'bearer',
+            'bearerFormat': 'JWT',
+        },
+        'jwtAuth': {
+            'type': 'http',
+            'scheme': 'bearer',
+            'bearerFormat': 'JWT',
+        },
+    }
+}

@@ -7,11 +7,6 @@ services:
       POSTGRES_DB: chat_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: sahim_db_password
-    command: >
-      postgres
-      -c log_min_messages=ERROR
-      -c client_min_messages=ERROR
-      -c log_error_verbosity=terse
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -22,6 +17,19 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
+      retries: 5
+
+  redis:
+    restart: always
+    image: redis:7-alpine
+    ports:
+      - "6378:6379"
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 5
 
   web:
@@ -38,10 +46,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - mynetwork
     env_file:
       - ./.env
+    environment:
+      - PYTHONUNBUFFERED=1
 
 volumes:
   postgres_data:

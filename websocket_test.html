@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test - Sahim Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #a5b4fc;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Vazir', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: var(--text-light);
+            font-size: 16px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            height: fit-content;
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 14px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text);
+            transition: all 0.2s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .status-badge.connected {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
+        .status-badge.disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+        
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .messages-container {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            height: calc(100vh - 200px);
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .messages-header {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .messages::-webkit-scrollbar-track {
+            background: var(--bg);
+            border-radius: 4px;
+        }
+        
+        .messages::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        
+        .messages::-webkit-scrollbar-thumb:hover {
+            background: var(--text-light);
+        }
+        
+        .message {
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+        }
+        
+        .message.sent {
+            background: rgba(99, 102, 241, 0.05);
+            border-color: var(--primary-light);
+            margin-left: 40px;
+        }
+        
+        .message.received {
+            margin-right: 40px;
+        }
+        
+        .message.error {
+            background: rgba(239, 68, 68, 0.05);
+            border-color: var(--error);
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+        .message-type {
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+        
+        .message-time {
+            color: var(--text-light);
+        }
+        
+        .message-content {
+            color: var(--text);
+            word-wrap: break-word;
+        }
+        
+        .file-preview {
+            padding: 12px;
+            background: var(--surface);
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        
+        .file-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .file-link:hover {
+            background: var(--primary-dark);
+        }
+        
+        .file-image {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .divider {
+            margin: 24px 0;
+            border-top: 1px solid var(--border);
+        }
+        
+        pre {
+            background: var(--bg);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .messages-container {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔌 WebSocket Test Client</h1>
+            <p>Sahim Chat - تست ارتباطات Real-time</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-title">⚙️ تنظیمات اتصال</div>
+                
+                <div class="form-group">
+                    <label for="wsUrl">آدرس WebSocket</label>
+                    <input type="text" id="wsUrl" class="form-control" value="ws://localhost:8080">
+                </div>
+                
+                <div class="form-group">
+                    <label for="chatId">شناسه چت</label>
+                    <input type="number" id="chatId" class="form-control" value="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="jwtToken">توکن JWT</label>
+                    <textarea id="jwtToken" class="form-control" rows="3" placeholder="توکن JWT خود را وارد کنید"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="endpointType">نوع اتصال</label>
+                    <select id="endpointType" class="form-control">
+                        <option value="chat">چت WebSocket</option>
+                        <option value="user-chats">چت‌های کاربر</option>
+                    </select>
+                </div>
+                
+                <div id="status" class="status-badge disconnected">
+                    <span class="status-dot"></span>
+                    <span>قطع شده</span>
+                </div>
+                
+                <button id="connectBtn" class="btn btn-primary" onclick="connect()">🔗 اتصال</button>
+                <button id="disconnectBtn" class="btn btn-danger" onclick="disconnect()" disabled>❌ قطع اتصال</button>
+                
+                <div id="messageTypeContainer" class="hidden">
+                    <div class="divider"></div>
+                    <div class="panel-title">💬 ارسال پیام</div>
+                    
+                    <div class="form-group">
+                        <label for="messageType">نوع پیام</label>
+                        <select id="messageType" class="form-control">
+                            <option value="chat_message">پیام چت</option>
+                            <option value="typing">نشانگر تایپ</option>
+                            <option value="read_receipt">رسید خواندن</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="contentGroup">
+                        <label for="messageContent">محتوای پیام</label>
+                        <textarea id="messageContent" class="form-control" rows="3" placeholder="پیام خود را وارد کنید"></textarea>
+                    </div>
+                    
+                    <div class="form-group" id="messageTypeGroup">
+                        <label for="messageTypeSelect">نوع محتوا</label>
+                        <select id="messageTypeSelect" class="form-control">
+                            <option value="text">متن</option>
+                            <option value="file">فایل</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group hidden" id="fileGroup">
+                        <label for="fileInput">انتخاب فایل</label>
+                        <input type="file" id="fileInput" class="form-control" accept="*/*">
+                        <div id="fileInfo" class="hidden" style="margin-top: 12px; padding: 12px; background: var(--bg); border-radius: 8px; font-size: 13px;">
+                            <div id="fileName"></div>
+                            <div id="fileSize"></div>
+                            <button type="button" class="btn btn-danger" onclick="clearFile()" style="margin-top: 8px;">حذف فایل</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group hidden" id="typingGroup">
+                        <label for="isTyping">در حال تایپ</label>
+                        <select id="isTyping" class="form-control">
+                            <option value="true">بله</option>
+                            <option value="false">خیر</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group hidden" id="readReceiptGroup">
+                        <label for="messageId">شناسه پیام</label>
+                        <input type="number" id="messageId" class="form-control" placeholder="1">
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="sendMessage()">📤 ارسال پیام</button>
+                </div>
+            </div>
+            
+            <div class="messages-container">
+                <div class="messages-header">📨 پیام‌ها</div>
+                <div id="messages" class="messages">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💭</div>
+                        <div>هیچ پیامی دریافت نشده است</div>
+                        <div style="font-size: 13px; margin-top: 8px;">برای شروع، به WebSocket متصل شوید</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let isManualDisconnect = false;
+        let currentWsUrl = '';
+        let selectedFile = null;
+        
+        function updateStatus(connected) {
+            const status = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const messageTypeContainer = document.getElementById('messageTypeContainer');
+            
+            if (connected) {
+                status.innerHTML = '<span class="status-dot"></span><span>متصل</span>';
+                status.className = 'status-badge connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                messageTypeContainer.classList.remove('hidden');
+            } else {
+                status.innerHTML = '<span class="status-dot"></span><span>قطع شده</span>';
+                status.className = 'status-badge disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                messageTypeContainer.classList.add('hidden');
+            }
+        }
+        
+        function addMessage(type, data, direction) {
+            if (type === 'error' || (data && data.type === 'error')) {
+                const errorMessage = data?.message || data?.error || '';
+                const errorMsg = errorMessage.toLowerCase();
+                if (errorMsg.includes('async context') || errorMsg.includes('sync_to_async')) {
+                    console.warn('Async context error (hidden from user):', errorMessage);
+                    return;
+                }
+            }
+            
+            const messages = document.getElementById('messages');
+            const emptyState = messages.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            const message = document.createElement('div');
+            message.className = `message ${direction}`;
+            
+            const time = new Date().toLocaleTimeString('fa-IR');
+            let messageContent = '';
+            const messageType = data.message_type || '';
+            const contentType = data.type || type;
+            
+            if (contentType === 'chat_message') {
+                if (messageType === 'text' && data.content) {
+                    messageContent = `<div class="message-text-content">${escapeHtml(data.content)}</div>`;
+                } else if (messageType === 'file') {
+                    const fileName = data.file_name || data.content || 'فایل';
+                    let fileUrl = data.file_url;
+                    
+                    if (!fileUrl && data.file_path) {
+                        if (currentWsUrl) {
+                            try {
+                                const wsUrlObj = new URL(currentWsUrl);
+                                const protocol = wsUrlObj.protocol === 'wss:' ? 'https:' : 'http:';
+                                const baseUrl = `${protocol}//${wsUrlObj.host}`;
+                                let mediaPath = data.file_path;
+                                if (!mediaPath.startsWith('/media/')) {
+                                    mediaPath = mediaPath.startsWith('/') ? `/media${mediaPath}` : `/media/${mediaPath}`;
+                                }
+                                fileUrl = `${baseUrl}${mediaPath}`;
+                            } catch (e) {
+                                console.error('Error building file URL:', e);
+                            }
+                        }
+                    }
+                    
+                    if (!fileUrl && data.id) {
+                        if (currentWsUrl) {
+                            try {
+                                const wsUrlObj = new URL(currentWsUrl);
+                                const protocol = wsUrlObj.protocol === 'wss:' ? 'https:' : 'http:';
+                                const baseUrl = `${protocol}//${wsUrlObj.host}`;
+                                const jwtToken = document.getElementById('jwtToken')?.value || '';
+                                fileUrl = jwtToken 
+                                    ? `${baseUrl}/api/v1/chat/messages/${data.id}/file/?token=${jwtToken}`
+                                    : `${baseUrl}/api/v1/chat/messages/${data.id}/file/`;
+                            } catch (e) {
+                                console.error('Error building API URL:', e);
+                            }
+                        }
+                    }
+                    
+                    if (fileUrl && (data.file_type?.startsWith('image/') || fileName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))) {
+                        messageContent = `
+                            <div class="file-preview">
+                                <img src="${fileUrl}" alt="${escapeHtml(fileName)}" class="file-image" onerror="this.parentElement.innerHTML='<strong>📎 فایل:</strong> ${escapeHtml(fileName)} <a href=\\'${fileUrl}\\' class=\\'file-link\\' target=\\'_blank\\'>⬇️ دانلود</a>'">
+                            </div>
+                        `;
+                    } else {
+                        messageContent = `
+                            <div class="file-preview">
+                                <strong>📎 فایل:</strong> ${escapeHtml(fileName)}
+                                ${fileUrl ? `<a href="${fileUrl}" target="_blank" download="${escapeHtml(fileName)}" class="file-link">⬇️ دانلود</a>` : '<span style="color: var(--error); font-size: 12px;">فایل در دسترس نیست</span>'}
+                            </div>
+                        `;
+                    }
+                } else {
+                    const displayData = { ...data };
+                    if (displayData.file_data) delete displayData.file_data;
+                    messageContent = `<pre>${JSON.stringify(displayData, null, 2)}</pre>`;
+                }
+            } else {
+                const displayData = { ...data };
+                if (displayData.file_data) delete displayData.file_data;
+                messageContent = `<pre>${JSON.stringify(displayData, null, 2)}</pre>`;
+            }
+            
+            message.innerHTML = `
+                <div class="message-header">
+                    <div class="message-type">${type}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+                <div class="message-content">${messageContent}</div>
+            `;
+            
+            messages.appendChild(message);
+            setTimeout(() => {
+                messages.scrollTop = messages.scrollHeight;
+            }, 0);
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function clearFile() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').classList.add('hidden');
+        }
+        
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('fileName').textContent = `نام: ${file.name}`;
+                document.getElementById('fileSize').textContent = `اندازه: ${(file.size / 1024).toFixed(2)} KB`;
+                document.getElementById('fileInfo').classList.remove('hidden');
+            }
+        });
+        
+        function connect() {
+            const wsUrl = document.getElementById('wsUrl').value;
+            currentWsUrl = wsUrl;
+            const chatId = document.getElementById('chatId').value;
+            const jwtToken = document.getElementById('jwtToken').value;
+            const endpointType = document.getElementById('endpointType').value;
+            
+            if (!jwtToken) {
+                alert('لطفاً توکن JWT را وارد کنید!');
+                return;
+            }
+            
+            let url;
+            if (endpointType === 'chat') {
+                if (!chatId) {
+                    alert('لطفاً شناسه چت را وارد کنید!');
+                    return;
+                }
+                url = `${wsUrl}/ws/chat/${chatId}/?token=${jwtToken}`;
+            } else {
+                url = `${wsUrl}/ws/user/chats/?token=${jwtToken}`;
+            }
+            
+            try {
+                isManualDisconnect = false;
+                ws = new WebSocket(url);
+                
+                ws.onopen = function(event) {
+                    reconnectAttempts = 0;
+                    updateStatus(true);
+                    addMessage('اتصال', { status: 'برقرار شد' }, 'received');
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'error' && data.message) {
+                        const errorMsg = data.message.toLowerCase();
+                        if (errorMsg.includes('async context') || errorMsg.includes('sync_to_async')) {
+                            console.warn('Async context error (hidden from user):', data.message);
+                            return;
+                        }
+                    }
+                    
+                    const direction = data.is_sent === true ? 'sent' : 'received';
+                    addMessage(data.type || 'پیام', data, direction);
+                };
+                
+                ws.onerror = function(error) {
+                    addMessage('خطا', { 
+                        error: 'خطای WebSocket',
+                        message: 'بررسی کنید: 1) سرور در حال اجرا است 2) توکن JWT معتبر است'
+                    }, 'error');
+                };
+                
+                ws.onclose = function(event) {
+                    updateStatus(false);
+                    
+                    let closeReason = '';
+                    switch(event.code) {
+                        case 1000: closeReason = 'بسته شدن عادی'; break;
+                        case 1006: closeReason = 'بسته شدن غیرعادی'; break;
+                        case 4001: closeReason = 'غیرمجاز - کاربر احراز هویت نشده است'; break;
+                        case 4003: closeReason = 'ممنوع - کاربر عضو این چت نیست'; break;
+                        case 4004: closeReason = 'پیدا نشد - چت وجود ندارد'; break;
+                        default: closeReason = event.reason || 'علت نامشخص';
+                    }
+                    
+                    addMessage('قطع اتصال', { 
+                        status: 'قطع شد', 
+                        code: event.code,
+                        reason: closeReason
+                    }, 'error');
+                    
+                    if (!isManualDisconnect && reconnectAttempts < maxReconnectAttempts && event.code !== 4001 && event.code !== 4003 && event.code !== 4004) {
+                        reconnectAttempts++;
+                        setTimeout(connect, 3000);
+                    }
+                };
+                
+            } catch (error) {
+                addMessage('خطا', { error: error.message }, 'error');
+            }
+        }
+        
+        function disconnect() {
+            if (ws) {
+                isManualDisconnect = true;
+                reconnectAttempts = 0;
+                ws.close();
+                ws = null;
+            }
+        }
+        
+        async function sendMessage() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('WebSocket متصل نیست!');
+                return;
+            }
+            
+            const messageType = document.getElementById('messageType').value;
+            let message = { type: messageType };
+            
+            if (messageType === 'chat_message') {
+                const msgType = document.getElementById('messageTypeSelect').value;
+                message.message_type = msgType;
+                
+                if (selectedFile && msgType === 'file') {
+                    try {
+                        const base64Data = await fileToBase64(selectedFile);
+                        message.file_data = base64Data;
+                        message.file_name = selectedFile.name;
+                        message.file_size = selectedFile.size;
+                        message.file_type = selectedFile.type;
+                        message.content = `File: ${selectedFile.name}`;
+                    } catch (error) {
+                        alert('خطا در خواندن فایل: ' + error.message);
+                        return;
+                    }
+                } else {
+                    message.content = document.getElementById('messageContent').value;
+                }
+            } else if (messageType === 'typing') {
+                message.is_typing = document.getElementById('isTyping').value === 'true';
+            } else if (messageType === 'read_receipt') {
+                message.message_id = parseInt(document.getElementById('messageId').value);
+            }
+            
+            ws.send(JSON.stringify(message));
+            addMessage(messageType, message, 'sent');
+            
+            document.getElementById('messageContent').value = '';
+            clearFile();
+        }
+        
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        document.getElementById('messageType').addEventListener('change', function() {
+            const messageType = this.value;
+            document.getElementById('contentGroup').classList.toggle('hidden', messageType !== 'chat_message');
+            document.getElementById('messageTypeGroup').classList.toggle('hidden', messageType !== 'chat_message');
+            document.getElementById('fileGroup').classList.toggle('hidden', messageType !== 'chat_message');
+            document.getElementById('typingGroup').classList.toggle('hidden', messageType !== 'typing');
+            document.getElementById('readReceiptGroup').classList.toggle('hidden', messageType !== 'read_receipt');
+        });
+        
+        document.getElementById('messageTypeSelect').addEventListener('change', function() {
+            const messageType = this.value;
+            document.getElementById('fileGroup').classList.toggle('hidden', messageType !== 'file');
+            document.getElementById('contentGroup').classList.toggle('hidden', messageType === 'file');
+        });
+        
+        document.getElementById('endpointType').addEventListener('change', function() {
+            const endpointType = this.value;
+            document.getElementById('chatId').parentElement.style.display = endpointType === 'chat' ? 'block' : 'none';
+        });
+    </script>
+</body>
+</html>

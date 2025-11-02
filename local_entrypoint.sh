@@ -11,5 +11,5 @@ python manage.py migrate
 # collect static files
 python manage.py collectstatic --noinput
 
-# start server
-python manage.py runserver 0.0.0.0:8000
+# start ASGI server for WebSocket support
+daphne -b 0.0.0.0 -p 8000 config.asgi:application

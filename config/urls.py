@@ -24,5 +24,15 @@ api_v1_urlpatterns = [
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(api_v1_urlpatterns)),
+]
 
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve static and media files
+# In DEBUG mode, serve static files through Django
+# In production, use a web server like Nginx
+if settings.DEBUG:
+    from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+    urlpatterns += staticfiles_urlpatterns()
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # In production, only serve media files (static files should be served by web server)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
