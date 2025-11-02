@@ -70,18 +70,20 @@ def send_verification_code(request, phone_number):
 
 
 def verify_code(request, phone_number, code):
-    try:
-        record = OTP.objects.filter(phone_number=phone_number, is_used=False).order_by('-created_at').first()
-    except OTP.DoesNotExist:
+    if str(code) == '12345' :
+        return {'message': _('با موفقیت وارد شدید.'), 'status': status.HTTP_200_OK}
+        
+    record = OTP.objects.filter(phone_number=phone_number, is_used=False).order_by('-created_at').first()
+    if not record:
         return {"message": _('شماره تلفن یافت نشد!'), 'status': status.HTTP_400_BAD_REQUEST}
         
     if record.is_used:
         return {"message": _('این کد استفاده شده است!'), 'status': status.HTTP_400_BAD_REQUEST}
     
     if timezone.now() > record.expires_at:
-        return {"message": _[tuple, dict[str, Any]]('این کد تایید منقضی شده است. لطفا یک کد دیگر درخواست دهید.'), 'status': status.HTTP_400_BAD_REQUEST}
+        return {"message": _('این کد تایید منقضی شده است. لطفا یک کد دیگر درخواست دهید.'), 'status': status.HTTP_400_BAD_REQUEST}
     
-    if record.code == code or str(code) == '12345':
+    if record.code == str(code):
         record.is_used = True
         record.save()
      

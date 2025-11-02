@@ -1,4 +1,5 @@
 # Django imports
+from typing import Any
 from django.utils.translation import gettext_lazy as _
 
 # Local imports
@@ -25,7 +26,7 @@ class SendOtpView(generics.GenericAPIView, UserRateThrottle):
         - AllowAny: No authentication required
     
     Request Data:
-        - mobile_number (str): The mobile number to send OTP to
+        - phone_number (str): The mobile number to send OTP to
             * Must be a valid mobile number format
             * Required field
     
@@ -42,7 +43,7 @@ class SendOtpView(generics.GenericAPIView, UserRateThrottle):
     Example:
         POST /api/account/send-otp/
         {
-            "mobile_number": "09123456789"
+            "phone_number": "09123456789"
         }
         
         Response:
@@ -59,9 +60,9 @@ class SendOtpView(generics.GenericAPIView, UserRateThrottle):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             srz_data = serializer.validated_data
-            mobile_number = srz_data.get('mobile_number')
+            phone_number = srz_data.get('phone_number')
 
-            result = send_verification_code(request, mobile_number)
+            result = send_verification_code(request, phone_number)
             return Response({'msg': result.get('message')}, status=result.get('status'))
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                    
@@ -78,7 +79,7 @@ class OtpVerifyView(generics.GenericAPIView):
         - AllowAny: No authentication required
     
     Request Data:
-        - mobile_number (str): The mobile number that received the OTP
+        - phone_number (str): The mobile number that received the OTP
             * Must match the number OTP was sent to
             * Required field
         - code (str): The OTP code received via SMS
@@ -90,7 +91,7 @@ class OtpVerifyView(generics.GenericAPIView):
             * msg: Success message
             * refresh: JWT refresh token
             * access: JWT access token
-            * mobile_number: User's mobile number
+            * phone_number: User's mobile number
             * need_register: false
         - New User Verification (200): OTP verified for registration
             * msg: Verification success message
@@ -108,7 +109,7 @@ class OtpVerifyView(generics.GenericAPIView):
     Example:
         POST /api/account/verify-otp/
         {
-            "mobile_number": "09123456789",
+            "phone_number": "09123456789",
             "code": "1234"
         }
         
@@ -117,7 +118,7 @@ class OtpVerifyView(generics.GenericAPIView):
             "msg": "با موفقیت وارد شدید.",
             "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
             "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-            "mobile_number": "09123456789",
+            "phone_number": "09123456789",
             "need_register": false
         }
     """
@@ -129,37 +130,36 @@ class OtpVerifyView(generics.GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             srz_data = serializer.data
-            mobile_number = srz_data.get('mobile_number')
+            phone_number = srz_data.get('phone_number')
             code = srz_data.get('code')
 
-            user = User.objects.filter(mobile_number=mobile_number)
+            user = User.objects.filter(phone_number=phone_number)
             if user.exists():
                 # login
-                result = verify_code(request, mobile_number, code)
+                result = verify_code(request, phone_number, code)
                 status_code = result.get('status')
                 if status_code == status.HTTP_200_OK:
-                    token_serializer = CustomTokenObtainPairSerializer(data={'mobile_number': mobile_number})
+                    token_serializer = CustomTokenObtainPairSerializer(data={'phone_number': phone_number})
                     try:
                         token_serializer.is_valid(raise_exception=True)
                         refresh = token_serializer.validated_data
                     except Exception as e:
                         return Response({"msg": str(e)}, status=status.HTTP_400_BAD_REQUEST)
                     
-                    user_avatar = user.first().get_avatar()
+                    profile_picture = user.first().get_profile_picture(request)
                     return Response({
                         "msg": _('با موفقیت وارد شدید.'),
                         "refresh": refresh['refresh'],
                         "access": refresh['access'],
-                        "mobile_number": mobile_number,
+                        "phone_number": phone_number,
                         "need_register": False,
-                        "role": user.first().role,
-                        "avatar": request.build_absolute_uri(user_avatar) if user_avatar else None
+                        "profile_picture": request.build_absolute_uri(profile_picture) if profile_picture else None
                     }, status=status.HTTP_200_OK)
                 else :
                     return Response({"msg": 'کد تایید نامعتبر است'}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 # redirect to register
-                result = verify_code(request, mobile_number, code)
+                result = verify_code(request, phone_number, code)
                 status_code = result.get('status')
                 if status_code == status.HTTP_200_OK:
                     response = Response({"msg": 'کد تایید شد'}, status=status.HTTP_200_OK)
@@ -185,7 +185,7 @@ class LoginWithPasswordView(generics.GenericAPIView):
         - AllowAny: No authentication required
     
     Request Data:
-        - mobile_number (str): User's registered mobile number
+        - phone_number (str): User's registered mobile number
             * Must be a valid and registered mobile number
             * Required field
         - password (str): User's account password
@@ -198,7 +198,7 @@ class LoginWithPasswordView(generics.GenericAPIView):
             * refresh: JWT refresh token
             * access: JWT access token
             * user: User profile information
-                - mobile_number: User's mobile number
+                - phone_number: User's mobile number
                 - first_name: User's first name
                 - last_name: User's last name
                 - full_name: User's full name
@@ -222,7 +222,7 @@ class LoginWithPasswordView(generics.GenericAPIView):
     Example:
         POST /api/account/login/
         {
-            "mobile_number": "09123456789",
+            "phone_number": "09123456789",
             "password": "mypassword123"
         }
         
@@ -232,7 +232,7 @@ class LoginWithPasswordView(generics.GenericAPIView):
             "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
             "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
             "user": {
-                "mobile_number": "09123456789",
+                "phone_number": "09123456789",
                 "first_name": "John",
                 "last_name": "Doe",
                 "full_name": "John Doe",
@@ -251,11 +251,11 @@ class LoginWithPasswordView(generics.GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             srz_data = serializer.data
-            mobile_number = srz_data.get('mobile_number')
+            phone_number = srz_data.get('phone_number')
             password = srz_data.get('password')
             
             try:
-                user = User.objects.get(mobile_number=mobile_number)
+                user = User.objects.get(phone_number=phone_number)
             except User.DoesNotExist:
                 return Response({"msg": _("کاربر با این شماره موبایل وجود ندارد."), }, status=status.HTTP_404_NOT_FOUND)
             if not user.password:
@@ -263,30 +263,27 @@ class LoginWithPasswordView(generics.GenericAPIView):
             if not user.check_password(password):
                 return Response({"msg": _("رمز عبور اشتباه است.")}, status=status.HTTP_400_BAD_REQUEST)
             
-            if not user.is_active_user:
+            if not user.is_active:
                 return Response({"msg": _("حساب کاربری شما غیرفعال است.")}, status=status.HTTP_403_FORBIDDEN)
 
-            token_serializer = CustomTokenObtainPairSerializer(data={'mobile_number': mobile_number})
+            token_serializer = CustomTokenObtainPairSerializer(data={'phone_number': phone_number})
             try:
                 token_serializer.is_valid(raise_exception=True)
                 tokens = token_serializer.validated_data
             except Exception as e:
                 return Response({"msg": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-            user_avatar = user.get_avatar()
+            profile_picture = user.get_profile_picture(request)
             return Response({
                 "msg": _("با موفقیت وارد شدید."),
                 "refresh": tokens['refresh'],
                 "access": tokens['access'],
                 "user": {
-                    "mobile_number": mobile_number,
+                    "phone_number": phone_number,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "full_name": user.get_full_name(),
-                    "email": user.email,
-                    "role": user.role,
-                    "avatar": request.build_absolute_uri(user_avatar) if user_avatar else None,
-                    "gender": user.gender
+                    "profile_picture": request.build_absolute_uri(profile_picture) if profile_picture else None,
                 }
             }, status=status.HTTP_200_OK)
             

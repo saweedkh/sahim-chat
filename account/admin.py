@@ -2,15 +2,20 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.utils.translation import gettext_lazy as _
+from django import forms
 
 # Local imports
+from account.forms import CustomUserCreationForm
 from utils.admin import TimeStampedModelAdmin
 from utils.jdatetime import humanize_and_pretty_jalali_datetime
 from .models import User, OTP
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
+    form = UserChangeForm
+    add_form = CustomUserCreationForm
     
     fieldsets = (
         (
@@ -45,7 +50,7 @@ class UserAdmin(BaseUserAdmin):
             {
                 'classes': ('wide',),
                 'fields': (
-                    'phone_number', 'first_name', 'last_name', 'username', 'password', 
+                    'phone_number', 'first_name', 'last_name', 'username', 'password1', 'password2'
                 )
             }
         ),
