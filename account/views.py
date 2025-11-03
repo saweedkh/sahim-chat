@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 # Local imports
 from .models import User
-from .serializers import OtpSendSerializer, VerifySerializer, LoginWithPasswordSerializer, CustomTokenObtainPairSerializer
+from .serializers import OtpSendSerializer, VerifySerializer, LoginWithPasswordSerializer, CustomTokenObtainPairSerializer, ProfileSerializer
 from .utils import send_verification_code, verify_code
 
 # Third Party Packages
@@ -70,10 +70,10 @@ class OtpVerifyView(generics.GenericAPIView):
     """
     API view to verify OTP code and handle login/registration flow.
     
-    This view verifies the OTP code sent to a mobile number and determines
-    the appropriate action based on user existence. For existing users,
-    it performs login and returns authentication tokens. For new users,
-    it provides a verification token for registration.
+    This view verifies the OTP code sent to a mobile number and automatically
+    handles both login and registration. For existing users, it performs login
+    and returns authentication tokens. For new users (if user doesn't exist),
+    it automatically creates the user account and returns authentication tokens.
     
     Permissions:
         - AllowAny: No authentication required
@@ -87,16 +87,13 @@ class OtpVerifyView(generics.GenericAPIView):
             * Required field
     
     Returns:
-        - Existing User Login (200): User authenticated successfully
+        - Success (200): User authenticated/created successfully
             * msg: Success message
             * refresh: JWT refresh token
             * access: JWT access token
             * phone_number: User's mobile number
-            * need_register: false
-        - New User Verification (200): OTP verified for registration
-            * msg: Verification success message
-            * verification_token: Token for registration process
-            * need_register: true
+            * need_register: false (always false, registration is automatic)
+            * profile_picture: User's profile picture URL (if exists)
         - Error (400): Invalid OTP or expired code
             * msg: Error message
     
@@ -104,22 +101,23 @@ class OtpVerifyView(generics.GenericAPIView):
         1. Verify OTP code
         2. Check if user exists with mobile number
         3. If exists: Generate tokens and login
-        4. If not exists: Provide verification token for registration
+        4. If not exists: Automatically create user account and generate tokens
     
     Example:
-        POST /api/account/verify-otp/
+        POST /api/account/otp/verify/
         {
             "phone_number": "09123456789",
-            "code": "1234"
+            "code": "12345"
         }
         
-        Response (Existing User):
+        Response (Existing User or New User):
         {
-            "msg": "با موفقیت وارد شدید.",
+            "msg": "با موفقیت وارد شدید." or "حساب کاربری شما با موفقیت ایجاد شد و وارد شدید.",
             "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
             "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
             "phone_number": "09123456789",
-            "need_register": false
+            "need_register": false,
+            "profile_picture": null
         }
     """
     serializer_class = VerifySerializer
@@ -128,50 +126,45 @@ class OtpVerifyView(generics.GenericAPIView):
     
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            srz_data = serializer.data
-            phone_number = srz_data.get('phone_number')
-            code = srz_data.get('code')
-
-            user = User.objects.filter(phone_number=phone_number)
-            if user.exists():
-                # login
-                result = verify_code(request, phone_number, code)
-                status_code = result.get('status')
-                if status_code == status.HTTP_200_OK:
-                    token_serializer = CustomTokenObtainPairSerializer(data={'phone_number': phone_number})
-                    try:
-                        token_serializer.is_valid(raise_exception=True)
-                        refresh = token_serializer.validated_data
-                    except Exception as e:
-                        return Response({"msg": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                    
-                    profile_picture = user.first().get_profile_picture(request)
-                    return Response({
-                        "msg": _('با موفقیت وارد شدید.'),
-                        "refresh": refresh['refresh'],
-                        "access": refresh['access'],
-                        "phone_number": phone_number,
-                        "need_register": False,
-                        "profile_picture": request.build_absolute_uri(profile_picture) if profile_picture else None
-                    }, status=status.HTTP_200_OK)
-                else :
-                    return Response({"msg": 'کد تایید نامعتبر است'}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                # redirect to register
-                result = verify_code(request, phone_number, code)
-                status_code = result.get('status')
-                if status_code == status.HTTP_200_OK:
-                    response = Response({"msg": 'کد تایید شد'}, status=status.HTTP_200_OK)
-
-                    if result.get('encoded_data'):
-                        response.data['verification_token'] = result.get('encoded_data')
-                        response.data['need_register'] = True                         
-                    return response
-
-                else:
-                    return Response({"msg": result.get('message')}, status=status_code)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        phone_number = serializer.validated_data.get('phone_number')
+        code = serializer.validated_data.get('code')
+        
+        result = verify_code(request, phone_number, code)
+        if result.get('status') != status.HTTP_200_OK:
+            return Response({"msg": result.get('message', 'کد تایید نامعتبر است')}, status=result.get('status'))
+        
+        try:
+            user = User.objects.get(phone_number=phone_number)
+            success_msg = _('با موفقیت وارد شدید.')
+        except User.DoesNotExist:
+            try:
+                user = User.objects.create_user(
+                    phone_number=phone_number,
+                )
+                success_msg = _('حساب کاربری شما با موفقیت ایجاد شد و وارد شدید.')
+            except Exception as e:
+                return Response({"msg": f"خطا در ایجاد حساب کاربری: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        token_serializer = CustomTokenObtainPairSerializer(data={'phone_number': phone_number})
+        try:
+            token_serializer.is_valid(raise_exception=True)
+            refresh = token_serializer.validated_data
+        except Exception as e:
+            return Response({"msg": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        profile_picture = user.get_profile_picture(request)
+        
+        return Response({
+            "msg": success_msg,
+            "refresh": refresh['refresh'],
+            "access": refresh['access'],
+            "phone_number": str(phone_number),
+            "need_register": False,
+            "profile_picture": request.build_absolute_uri(profile_picture) if profile_picture else None
+        }, status=status.HTTP_200_OK)
     
 class LoginWithPasswordView(generics.GenericAPIView):
     """
@@ -288,4 +281,63 @@ class LoginWithPasswordView(generics.GenericAPIView):
             }, status=status.HTTP_200_OK)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ProfileView(generics.RetrieveUpdateAPIView):
+    """
+    API view to get and update user profile.
+    
+    This view allows authenticated users to retrieve and update their profile information
+    including username, first_name, last_name, and profile_picture.
+    
+    Permissions:
+        - IsAuthenticated: User must be authenticated
+    
+    Methods:
+        - GET: Retrieve current user's profile
+        - PUT: Full update of user profile
+        - PATCH: Partial update of user profile
+    
+    Returns:
+        - GET (200): User profile information
+            * id: User ID
+            * phone_number: User's phone number (read-only)
+            * username: User's username
+            * first_name: User's first name
+            * last_name: User's last name
+            * full_name: User's full name (read-only)
+            * profile_picture_url: Full URL to profile picture (read-only)
+            * created_at: Account creation date (read-only)
+            * updated_at: Last update date (read-only)
+        - PUT/PATCH (200): Updated profile information
+    
+    Example:
+        GET /api/account/profile/
+        
+        Response:
+        {
+            "id": 1,
+            "phone_number": "09123456789",
+            "username": "john_doe",
+            "first_name": "John",
+            "last_name": "Doe",
+            "full_name": "John Doe",
+            "profile_picture_url": "http://example.com/media/profile_pictures/1_20240101_120000.jpg",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T12:00:00Z"
+        }
+        
+        PUT /api/account/profile/
+        {
+            "username": "new_username",
+            "first_name": "Jane",
+            "last_name": "Smith",
+            "profile_picture": <file>
+        }
+    """
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_object(self):
+        """Return the current authenticated user."""
+        return self.request.user
  

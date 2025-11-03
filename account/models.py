@@ -29,11 +29,13 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     first_name = models.CharField(
         max_length=100,
         blank=True,
+        null=True,
         verbose_name=_('نام')
     )
     last_name = models.CharField(
         max_length=100,
         blank=True,
+        null=True,
         verbose_name=_('نام خانوادگی')
     )
     profile_picture = models.CharField(
@@ -56,7 +58,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     objects = UserManager()
 
     USERNAME_FIELD = 'phone_number'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    REQUIRED_FIELDS = []
 
     class Meta:
         verbose_name = _('کاربر')

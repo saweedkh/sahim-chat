@@ -1,4 +1,5 @@
 # Django imports
+from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -81,10 +82,9 @@ class ChatSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create chat with current user as user1."""
         user2_id = validated_data.pop('user2_id')
-        user2 = User.objects.get(id=user2_id)
+        user2 = get_object_or_404(User, id=user2_id)
         user1 = self.context['request'].user
         
-        # Check if chat already exists
         chat = Chat.objects.filter(
             user1=user1, user2=user2
         ).first()
@@ -97,7 +97,6 @@ class ChatSerializer(serializers.ModelSerializer):
         if chat:
             return chat
         
-        # Create new chat
         validated_data['user1'] = user1
         validated_data['user2'] = user2
         return super().create(validated_data)
@@ -140,6 +139,55 @@ class ChatListSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         if user.is_authenticated:
             return obj.messages.filter(
+                ~Q(sender=user),
+                read_by__isnull=True
+            ).count()
+        return 0
+
+class ChatUserSerializer(serializers.ModelSerializer):
+    """Serializer for users that we have chatted with."""
+
+    user1 = UserSerializer(read_only=True)
+    user2 = UserSerializer(read_only=True)
+    last_message = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
+    last_message_time = serializers.DateTimeField(read_only=True)
+    
+    class Meta:
+        model = Chat
+        fields = ('id', 'user1', 'user2', 'last_message', 'unread_count', 'last_message_time', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'user1', 'user2', 'last_message', 'unread_count', 'last_message_time', 'created_at', 'updated_at')
+    
+    def get_last_message(self, obj):
+        """Get last message in chat."""
+        if isinstance(obj, dict):
+            chat = obj.get('chat')
+        else:
+            chat = getattr(obj, 'chat', None)
+        
+        if chat:
+            last_msg = chat.messages.order_by('-created_at').first()
+            if last_msg:
+                return {
+                    'id': last_msg.id,
+                    'content': last_msg.content,
+                    'message_type': last_msg.message_type,
+                    'sender_id': last_msg.sender.id,
+                    'created_at': last_msg.created_at
+                }
+        return None
+    
+    def get_unread_count(self, obj):
+        """Get unread message count for current user."""
+        user = self.context['request'].user
+        
+        if isinstance(obj, dict):
+            chat = obj.get('chat')
+        else:
+            chat = getattr(obj, 'chat', None)
+        
+        if chat and user.is_authenticated:
+            return chat.messages.filter(
                 ~Q(sender=user),
                 read_by__isnull=True
             ).count()

@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, phone_number, first_name, last_name, password=None, **extra_fields):
+    def create_user(self, phone_number, first_name=None, last_name=None, password=None, **extra_fields):
         if not phone_number:
             raise ValueError(_('شماره تلفن باید تنظیم شود'))
         
@@ -19,8 +19,8 @@ class UserManager(BaseUserManager):
         user.save()
         return user
 
-    def create_superuser(self, phone_number, first_name, last_name, password):
-        user = self.create_user(phone_number, first_name, last_name)
+    def create_superuser(self, phone_number, first_name=None, last_name=None, password=None):
+        user = self.create_user(phone_number, first_name=first_name, last_name=last_name, password=password)
         user.is_superuser = True
         user.is_staff = True
         user.set_password(password)

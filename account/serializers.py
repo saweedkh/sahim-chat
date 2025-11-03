@@ -1,11 +1,16 @@
 # Django imports
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 # Third Party Packages
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from phonenumber_field.serializerfields import PhoneNumberField
+
+# Python imports
+import os
+from datetime import datetime
 
 
 User = get_user_model()
@@ -34,11 +39,9 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
     def get_token(cls, user):
         return cls.token_class.for_user(user)
 
-
 class OtpSendSerializer(serializers.Serializer):
     phone_number = PhoneNumberField()
     class Meta:
-
         fields = ('phone_number',)
     
 class VerifySerializer(serializers.ModelSerializer):
@@ -76,4 +79,40 @@ class LoginWithPasswordSerializer(serializers.ModelSerializer):
             'updated_at',
         )
         read_only_fields = ('created_at', 'updated_at')
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """Serializer for user profile (GET and UPDATE)."""
+    phone_number = PhoneNumberField(read_only=True)
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+    profile_picture_url = serializers.SerializerMethodField()
+    profile_picture = serializers.ImageField(write_only=True, required=False, allow_null=True)
+    
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'phone_number',
+            'username',
+            'first_name',
+            'last_name',
+            'full_name',
+            'profile_picture',
+            'profile_picture_url',
+            'created_at',
+            'updated_at',
+        )
+        read_only_fields = ('id', 'phone_number', 'created_at', 'updated_at')
+    
+    def validate_username(self, value):
+        """Validate that username is unique (except for current user)."""
+        if value:
+            user = self.context['request'].user
+            if User.objects.filter(username=value).exclude(id=user.id).exists():
+                raise serializers.ValidationError(_('این نام کاربری قبلاً استفاده شده است.'))
+        return value
+    
+    def get_profile_picture_url(self, obj):
+        """Return full URL for profile picture."""
+        return obj.get_profile_picture(self.context.get('request'))
+
    

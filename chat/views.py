@@ -8,7 +8,7 @@ from django.conf import settings
 
 # Local imports
 from .models import Chat, Message
-from .serializers import ChatSerializer, ChatListSerializer, MessageSerializer
+from .serializers import ChatSerializer, ChatListSerializer, MessageSerializer, ChatUserSerializer
 
 # Third Party Packages
 from asgiref.sync import async_to_sync
@@ -18,7 +18,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 
 # Python imports
@@ -42,7 +42,6 @@ class ChatCreateView(generics.CreateAPIView):
         chat = serializer.save()
         chat_data = ChatListSerializer(chat, context={'request': self.request}).data
         
-        # Send notification via WebSocket (only if Redis is available)
         try:
             async_to_sync(channel_layer.group_send)(
                 f'user_{chat.user1.id}_chats',
@@ -60,27 +59,99 @@ class ChatCreateView(generics.CreateAPIView):
                 }
             )
         except Exception as e:
-            # If Redis is not available, log the error but don't fail the request
             logger.warning(f"Failed to send WebSocket notification: {e}")
 
+@extend_schema(
+    summary='List chats or users',
+    description='''
+    List all chats for the authenticated user, or list users that we have chatted with.
+    
+    Query parameters:
+    - user: If set to 'true', returns list of users we have chatted with instead of chats
+    - page: Page number for pagination
+    - page_size: Number of items per page
+    - ordering: Order by field (e.g., '-updated_at', 'created_at')
+    ''',
+    parameters=[
+        OpenApiParameter(
+            name='user',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='If set to "true", returns list of users we have chatted with instead of chats',
+            required=False,
+        ),
+        OpenApiParameter(
+            name='page',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Page number for pagination',
+            required=False,
+        ),
+        OpenApiParameter(
+            name='page_size',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Number of items per page',
+            required=False,
+        ),
+        OpenApiParameter(
+            name='ordering',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Order by field (e.g., "-updated_at", "created_at")',
+            required=False,
+        ),
+    ],
+    responses={
+        200: OpenApiTypes.OBJECT,
+    }
+)
 class ChatListView(generics.ListAPIView):
     """
     List all chats for the authenticated user.
     
     GET /api/chats/ - List chats of the user
+    GET /api/chats/?user=true - List users that we have chatted with
+    
+    Query parameters:
+    - user: If set to 'true', returns list of users we have chatted with instead of chats
+    - page: Page number for pagination
+    - page_size: Number of items per page
+    - ordering: Order by field (e.g., '-updated_at', 'created_at')
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = ChatListSerializer
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    ordering_fields = ['created_at', 'updated_at']
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    ordering_fields = ['created_at', 'updated_at', 'last_message_time']
     ordering = ['-updated_at']
+    search_fields = []
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on query parameter."""
+        if self.request.query_params.get('user', '').lower():
+            return ChatUserSerializer
+        return ChatListSerializer
     
     def get_queryset(self):
-        """Return chats for current user."""
-        user = self.request.user
-        return Chat.objects.filter(
-            Q(user1=user) | Q(user2=user)
+        """Return chats or users based on query parameter."""
+        current_user = self.request.user
+
+        qs = Chat.objects.filter(
+            Q(user1=current_user) | Q(user2=current_user)
         ).distinct()
+        user_id = self.request.query_params.get('user', '').lower()
+        if user_id:
+            return qs.filter(
+                Q(user1__id=user_id) | Q(user2__id=user_id)
+            ).distinct()
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        """Override list to handle custom queryset format for users list."""
+        queryset = self.get_queryset()
+        if queryset:
+            serializer = self.get_serializer(queryset, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({'error': 'No chats found'}, status=status.HTTP_404_NOT_FOUND)
     
 class ChatDeleteView(generics.DestroyAPIView):
     """
@@ -106,7 +177,6 @@ class ChatDeleteView(generics.DestroyAPIView):
         
         instance.delete()
         
-        # Send notification via WebSocket (only if Redis is available)
         try:
             async_to_sync(channel_layer.group_send)(
                 f'user_{user1_id}_chats',
@@ -257,12 +327,13 @@ class MessageRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update or delete a message instance.
     
-    GET /api/messages/{id}/ - جزئیات یک پیام
-    PUT /api/messages/{id}/ - آپدیت پیام
-    PATCH /api/messages/{id}/ - آپدیت جزئی پیام
-    DELETE /api/messages/{id}/ - حذف پیام
+    API Endpoints:
+      -  GET /api/messages/{id}/ - Details of a message
+      -  PUT /api/messages/{id}/ - Update message
+      -  PATCH /api/messages/{id}/ - Partial update message
+      -  DELETE /api/messages/{id}/ - Delete message
     
-    Note: برای علامت‌گذاری پیام به عنوان خوانده شده از WebSocket استفاده کنید: ws://domain/ws/chat/{chat_id}/
+    Note: For marking a message as read, use WebSocket: ws://localhost:8080/ws/chat/{chat_id}/
     """
     permission_classes = [IsAuthenticated]
     serializer_class = MessageSerializer
@@ -273,7 +344,6 @@ class MessageRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return Message.objects.filter(
             Q(chat__user1=user) | Q(chat__user2=user)
         ).select_related('sender', 'chat', 'read_by')
-
 
 class MessageFileDownloadView(APIView):
     """
@@ -298,7 +368,6 @@ class MessageFileDownloadView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Get full file path
         file_path = message.file_path.path if hasattr(message.file_path, 'path') else os.path.join(settings.MEDIA_ROOT, str(message.file_path))
         
         if not os.path.exists(file_path):
@@ -307,13 +376,11 @@ class MessageFileDownloadView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Return file as response
         filename = os.path.basename(file_path)
         file = open(file_path, 'rb')
         response = FileResponse(file, content_type='application/octet-stream')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
-
 
 # WebSocket Documentation Views
 @extend_schema(
@@ -426,7 +493,6 @@ class WebSocketChatDocView(APIView):
                 }
             }
         })
-
 
 @extend_schema(
     tags=['WebSocket'],
