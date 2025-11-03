@@ -1,6 +1,9 @@
 # Django imports
 from typing import Any
 from django.utils.translation import gettext_lazy as _
+from django_filters.rest_framework import DjangoFilterBackend
+
+from chat.serializers import UserSerializer
 
 # Local imports
 from .models import User
@@ -8,7 +11,7 @@ from .serializers import OtpSendSerializer, VerifySerializer, LoginWithPasswordS
 from .utils import send_verification_code, verify_code
 
 # Third Party Packages
-from rest_framework import status
+from rest_framework import filters, status
 from rest_framework.response import Response
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -341,3 +344,20 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         """Return the current authenticated user."""
         return self.request.user
  
+
+class UsersListView(generics.ListAPIView):
+    """
+    API view to list all users.
+    
+    This view lists all users in the system.
+    
+    Permissions:
+        - IsAuthenticated: User must be authenticated
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+    search_fields = ['phone_number', 'username']
+    queryset = User.objects.all()
