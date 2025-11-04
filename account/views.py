@@ -166,7 +166,7 @@ class OtpVerifyView(generics.GenericAPIView):
             "access": refresh['access'],
             "phone_number": str(phone_number),
             "need_register": False,
-            "profile_picture": request.build_absolute_uri(profile_picture) if profile_picture else None
+            "profile_picture": profile_picture
         }, status=status.HTTP_200_OK)
     
 class LoginWithPasswordView(generics.GenericAPIView):
@@ -279,7 +279,7 @@ class LoginWithPasswordView(generics.GenericAPIView):
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "full_name": user.get_full_name(),
-                    "profile_picture": request.build_absolute_uri(profile_picture) if profile_picture else None,
+                    "profile_picture": profile_picture,
                 }
             }, status=status.HTTP_200_OK)
             

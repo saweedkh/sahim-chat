@@ -38,11 +38,12 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         null=True,
         verbose_name=_('نام خانوادگی')
     )
-    profile_picture = models.CharField(
-        max_length=255,
+    profile_picture = models.ImageField(
+        upload_to='profile_pictures/',
         blank=True,
         null=True,
-        verbose_name=_('تصویر پروفایل')
+        verbose_name=_('تصویر پروفایل'),
+        help_text=_('تصویر پروفایل کاربر')
     )
     is_staff = models.BooleanField(
         default=False,
@@ -86,8 +87,8 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     def get_profile_picture(self, request=None):
         if self.profile_picture:
             if request:
-                return request.build_absolute_uri(self.profile_picture)
-            return self.profile_picture
+                return request.build_absolute_uri(self.profile_picture.url)
+            return self.profile_picture.url
         return None
 
 
