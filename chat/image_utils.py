@@ -79,7 +79,6 @@ def format_message_data(message, sender, request=None):
     media_url = (settings.MEDIA_URL or '/media/').rstrip('/')
     path = file_path if file_path.startswith('/') else f"/{file_path}"
     
-    # Convert ImageFieldFile to URL string
     profile_picture = None
     if sender.profile_picture:
         profile_picture = sender.get_profile_picture(request)
