@@ -23,6 +23,8 @@ class Chat(TimeStampedModel):
     )
 
     class Meta:
+        verbose_name = _('چت')
+        verbose_name_plural = _('چت ها')
         indexes = [
             models.Index(fields=['user1'], name='idx_chat_user1'),
             models.Index(fields=['user2'], name='idx_chat_user2'),
@@ -86,6 +88,8 @@ class Message(TimeStampedModel):
     celery_task_id = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('شناسه تسک'))
     
     class Meta:
+        verbose_name = _('پیام')
+        verbose_name_plural = _('پیام ها')
         indexes = [
             models.Index(fields=['chat'], name='idx_message_chat'),
             models.Index(fields=['sender'], name='idx_message_sender'),
