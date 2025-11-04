@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     # third party apps
     'channels',
     'channels_redis',
+    'imagekit',
     'phonenumber_field',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -223,7 +224,7 @@ REST_FRAMEWORK = {
 
 # jwt
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
 }
 
@@ -251,6 +252,17 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# Celery settings
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Tehran'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 300
+CELERY_TASK_SOFT_TIME_LIMIT = 240
 
 # OpenAPI / drf-spectacular configuration
 SPECTACULAR_SETTINGS = {
