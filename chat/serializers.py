@@ -17,11 +17,16 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for user information in chat."""
     full_name = serializers.CharField(source='get_full_name', read_only=True)
+    profile_picture = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = ('id', 'phone_number', 'full_name', 'first_name', 'last_name', 'profile_picture')
         read_only_fields = ('id', 'phone_number', 'full_name', 'first_name', 'last_name', 'profile_picture')
+
+    def get_profile_picture(self, obj):
+        """Get profile picture URL."""
+        return obj.get_profile_picture(self.context.get('request'))
 
 class MessageSerializer(serializers.ModelSerializer):
     """Serializer for Message model."""
@@ -119,7 +124,7 @@ class ChatListSerializer(serializers.ModelSerializer):
         """Get the other user in chat."""
         user = self.context['request'].user
         other_user = obj.user2 if obj.user1 == user else obj.user1
-        return UserSerializer(other_user).data
+        return UserSerializer(other_user, context={'request': self.context['request']}).data
     
     def get_last_message(self, obj):
         """Get last message in chat."""

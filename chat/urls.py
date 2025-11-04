@@ -12,8 +12,10 @@ from .views import (
     MessageListView,
     MessageRetrieveUpdateDestroyView,
     MessageFileDownloadView,
+    TaskStatusView,
     WebSocketChatDocView,
     WebSocketUserChatsDocView,
+    ChatAppView
 )
 
 urlpatterns = [
@@ -23,6 +25,7 @@ urlpatterns = [
     path('chats/<int:pk>/update/', ChatUpdateView.as_view(), name='chat-update'),
     path('chats/<int:pk>/delete/', ChatDeleteView.as_view(), name='chat-delete'),
     path('chats/<int:chat_id>/messages/', ChatMessagesListView.as_view(), name='chat-messages-list'),
+    path('tasks/<str:task_id>/', TaskStatusView.as_view(), name='task-status'),
     
     path('messages/', MessageListView.as_view(), name='message-list'),
     path('messages/<int:pk>/', MessageRetrieveUpdateDestroyView.as_view(), name='message-retrieve-update-destroy'),

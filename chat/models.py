@@ -72,7 +72,7 @@ class Message(TimeStampedModel):
     )
     content = models.TextField(blank=True, null=True, verbose_name=_('محتوا'))
     message_type = models.CharField(max_length=20, choices=MESSAGE_TYPE_CHOICES, default='text', verbose_name=_('نوع پیام'))
-    file_path = models.FileField(upload_to='messages/', blank=True, null=True, verbose_name=_('فایل'))
+    file_path = models.FileField(upload_to='messages/', max_length=255, blank=True, null=True, verbose_name=_('فایل'))
     read_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -83,7 +83,8 @@ class Message(TimeStampedModel):
         verbose_name=_('خوانده شده توسط'),
     )
     read_at = models.DateTimeField(null=True, blank=True, verbose_name=_('زمان خواندن'))
-
+    celery_task_id = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('شناسه تسک'))
+    
     class Meta:
         indexes = [
             models.Index(fields=['chat'], name='idx_message_chat'),

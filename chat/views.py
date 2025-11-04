@@ -2,13 +2,13 @@
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from django.http import FileResponse
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 # Local imports
 from .models import Chat, Message
-from .serializers import ChatSerializer, ChatListSerializer, MessageSerializer, ChatUserSerializer
+from .serializers import ChatSerializer, ChatListSerializer, MessageSerializer, ChatUserSerializer, UserSerializer
 
 # Third Party Packages
 from asgiref.sync import async_to_sync
@@ -17,14 +17,19 @@ from rest_framework import status, generics, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+from celery.result import AsyncResult
+import redis
 
 # Python imports
 import os
 from logging import getLogger
+from django.shortcuts import render
 
+User = get_user_model()
 logger = getLogger(__name__)
 channel_layer = get_channel_layer()
 
@@ -152,12 +157,12 @@ class ChatListView(generics.ListAPIView):
             serializer = self.get_serializer(queryset, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response({'error': 'No chats found'}, status=status.HTTP_404_NOT_FOUND)
-    
+
 class ChatDeleteView(generics.DestroyAPIView):
     """
     Delete a chat.
     
-    DELETE /api/chats/{id}/ - Delete a chat
+    DELETE /api/chats/{id}/delete/ - Delete a chat
     """
     permission_classes = [IsAuthenticated]
     serializer_class = ChatSerializer
@@ -169,35 +174,41 @@ class ChatDeleteView(generics.DestroyAPIView):
             Q(user1=user) | Q(user2=user)
         ).distinct()
     
-    def perform_destroy(self, instance):
-        """Delete chat and send notification via WebSocket."""
+    def destroy(self, request, *args, **kwargs):
+        """Override destroy to add logging."""
+        instance = self.get_object()
         chat_id = instance.id
-        user1_id = instance.user1.id
-        user2_id = instance.user2.id
+        user_id = request.user.id
         
-        instance.delete()
+        logger.info(f"User {user_id} attempting to delete chat {chat_id}")
         
+        if instance.user1 != request.user and instance.user2 != request.user:
+            logger.warning(f"User {user_id} attempted to delete chat {chat_id} without permission")
+            return Response(
+                {'detail': _('شما به این چت دسترسی ندارید.')},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        user1_id = instance.user1_id
+        user2_id = instance.user2_id
+
+        with transaction.atomic():
+            deleted_count, _ = Chat.objects.filter(id=chat_id).delete()
+            if deleted_count == 0:
+                logger.error(f"Delete attempted but no rows affected for chat {chat_id}")
+                return Response({'detail': _('رکوردی برای حذف یافت نشد.')}, status=status.HTTP_404_NOT_FOUND)
+
         try:
-            async_to_sync(channel_layer.group_send)(
-                f'user_{user1_id}_chats',
-                {
-                    'type': 'chat_deleted',
-                    'chat_id': chat_id
-                }
-            )
-            
-            async_to_sync(channel_layer.group_send)(
-                f'user_{user2_id}_chats',
-                {
-                    'type': 'chat_deleted',
-                    'chat_id': chat_id
-                }
-            )
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    f'user_{user1_id}_chats', {'type': 'chat_deleted', 'chat_id': chat_id}
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f'user_{user2_id}_chats', {'type': 'chat_deleted', 'chat_id': chat_id}
+                )
         except Exception as e:
-            # If Redis is not available, log the error but don't fail the request
-            import logging
-            logger = logging.getLogger(__name__)
             logger.warning(f"Failed to send WebSocket notification: {e}")
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class ChatRetrieveView(generics.RetrieveAPIView):
     """
@@ -289,7 +300,6 @@ class ChatMessagesListView(generics.ListAPIView):
         
         return chat.messages.all().select_related('sender', 'chat', 'read_by')
 
-
 class MessageListView(generics.ListAPIView):
     """
     List all messages for chats where user is a participant.
@@ -321,7 +331,6 @@ class MessageListView(generics.ListAPIView):
             queryset = queryset.filter(chat_id=chat_id)
         
         return queryset
-
 
 class MessageRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -381,6 +390,28 @@ class MessageFileDownloadView(APIView):
         response = FileResponse(file, content_type='application/octet-stream')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+class TaskStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, task_id):
+        redis_url = os.environ.get('CELERY_RESULT_BACKEND') or os.environ.get('REDIS_URL', 'redis://redis:6379/0')
+        message_id = None
+        owner_id = None
+        try:
+            r = redis.from_url(redis_url)
+            message_id = r.get(f"task:{task_id}:message")
+            owner_id = r.get(f"task:{task_id}:user")
+            message_id = int(message_id) if message_id else None
+            owner_id = int(owner_id) if owner_id else None
+        except Exception:
+            pass
+        if owner_id and owner_id != request.user.id:
+            raise PermissionDenied(_('دسترسی به این تسک ندارید.'))
+        if message_id:
+            get_object_or_404(Message.objects.filter(sender=request.user), id=message_id)
+        result = AsyncResult(task_id)
+        return Response({'task_id': task_id, 'status': result.status, 'message_id': message_id}, status=status.HTTP_200_OK)
 
 # WebSocket Documentation Views
 @extend_schema(
@@ -573,3 +604,11 @@ class WebSocketUserChatsDocView(APIView):
                 }
             }
         })
+
+
+class ChatAppView(APIView):
+    """View to serve the chat application template."""
+    permission_classes = []
+    
+    def get(self, request):
+        return render(request, 'chat_app.html')
