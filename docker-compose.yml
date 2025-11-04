@@ -23,7 +23,7 @@ services:
     restart: always
     image: redis:7-alpine
     ports:
-      - "6378:6379"
+      - "6379:6379"
     networks:
       - mynetwork
     healthcheck:
@@ -48,6 +48,19 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - mynetwork
+    env_file:
+      - ./.env
+
+  celery:
+    build: ./
+    command: celery -A config worker --loglevel=info
+    volumes:
+      - ./:/app
+    depends_on:
+      - db
+      - redis
     networks:
       - mynetwork
     env_file:
