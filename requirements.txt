@@ -18,6 +18,8 @@ jsonschema==4.25.1
 jsonschema-specifications==2025.9.1
 phonenumbers==9.0.17
 pillow==12.0.0
+pillow-heif==0.18.0
+django-imagekit==5.0.0
 psycopg2-binary==2.9.9
 PyJWT==2.10.1
 python-dateutil==2.9.0.post0
@@ -35,3 +37,5 @@ pytz==2025.2
 channels==4.1.0
 channels-redis==4.2.0
 daphne
+celery==5.4.0
+redis==5.0.0
