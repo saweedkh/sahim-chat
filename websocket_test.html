@@ -274,35 +274,116 @@
         }
         
         .file-preview {
-            padding: 12px;
+            padding: 0;
             background: var(--surface);
-            border-radius: 8px;
+            border-radius: 12px;
             margin-top: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        
+        .file-preview-header {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+        
+        .file-size {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .file-preview-body {
+            padding: 16px;
+        }
+        
+        .file-image-container {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg);
+            margin-bottom: 12px;
+        }
+        
+        .file-image {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
         }
         
         .file-link {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            margin-top: 8px;
-            padding: 8px 12px;
+            gap: 8px;
+            padding: 10px 16px;
             background: var(--primary);
             color: white;
             text-decoration: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 13px;
             font-weight: 600;
             transition: all 0.2s;
+            flex: 1;
+            justify-content: center;
         }
         
         .file-link:hover {
             background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
         
-        .file-image {
-            max-width: 100%;
-            border-radius: 8px;
-            margin-top: 8px;
+        .file-link-icon {
+            font-size: 16px;
+        }
+        
+        .file-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
         }
         
         .empty-state {
@@ -334,6 +415,195 @@
             font-size: 12px;
             white-space: pre-wrap;
             word-wrap: break-word;
+        }
+        
+        .popup-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 9999; }
+        .popup { background: var(--surface); border-radius: 14px; padding: 20px; width: 92%; max-width: 380px; box-shadow: var(--shadow-lg); text-align: center; }
+        .popup-title { font-weight: 800; color: var(--error); margin-bottom: 8px; }
+        .popup-desc { color: var(--text-light); font-size: 14px; margin-bottom: 16px; }
+        .popup-actions { display: flex; gap: 10px; justify-content: center; }
+        .popup-btn { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; }
+        .popup-btn-primary { background: var(--primary); color: #fff; }
+        .popup-btn-secondary { background: var(--bg); color: var(--text); }
+        
+        .alert-popup {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.25s ease;
+        }
+        
+        .alert-popup.show {
+            display: flex;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .alert-popup-content {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 0;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid var(--border);
+        }
+        
+        .alert-popup-header {
+            padding: 32px 24px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .alert-popup-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--error) 0%, #dc2626 100%);
+        }
+        
+        .alert-popup-header.success::before {
+            background: linear-gradient(90deg, var(--success) 0%, #059669 100%);
+        }
+        
+        .alert-popup-header.warning::before {
+            background: linear-gradient(90deg, var(--warning) 0%, #d97706 100%);
+        }
+        
+        .alert-popup-header.info::before {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
+        }
+        
+        .alert-popup-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            display: inline-block;
+            animation: bounceIn 0.5s ease;
+        }
+        
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .alert-popup-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
+            letter-spacing: -0.5px;
+        }
+        
+        .alert-popup-body {
+            padding: 0 24px 24px;
+            text-align: center;
+        }
+        
+        .alert-popup-message {
+            color: var(--text-light);
+            font-size: 15px;
+            line-height: 1.7;
+            white-space: pre-line;
+            margin-bottom: 28px;
+            padding: 0 8px;
+        }
+        
+        .alert-popup-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .alert-popup-btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 120px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .alert-popup-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .alert-popup-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .alert-popup-btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        
+        .alert-popup-btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+        
+        .alert-popup-btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .alert-popup-btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+        
+        .alert-popup-btn-secondary:hover {
+            background: var(--border);
+            border-color: var(--primary-light);
         }
         
         @media (max-width: 1024px) {
@@ -455,6 +725,16 @@
         </div>
     </div>
     
+    <div id="uploadFailedPopup" class="popup-backdrop">
+        <div class="popup">
+            <div class="popup-title">خطا در آپلود فایل</div>
+            <div id="uploadFailedReason" class="popup-desc"></div>
+            <div class="popup-actions">
+                <button id="uploadFailedOk" class="popup-btn popup-btn-primary">باشه</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let ws = null;
         let reconnectAttempts = 0;
@@ -462,6 +742,7 @@
         let isManualDisconnect = false;
         let currentWsUrl = '';
         let selectedFile = null;
+        const uploadingMessages = new Map();
         
         function updateStatus(connected) {
             const status = document.getElementById('status');
@@ -502,6 +783,9 @@
             
             const message = document.createElement('div');
             message.className = `message ${direction}`;
+            if (data.id) {
+                message.setAttribute('data-message-id', data.id);
+            }
             
             const time = new Date().toLocaleTimeString('fa-IR');
             let messageContent = '';
@@ -512,15 +796,47 @@
                 if (messageType === 'text' && data.content) {
                     messageContent = `<div class="message-text-content">${escapeHtml(data.content)}</div>`;
                 } else if (messageType === 'file') {
-                    const fileName = data.file_name || data.content || 'فایل';
-                    let fileUrl = data.file_url;
-                    
-                    if (!fileUrl && data.file_path) {
-                        if (currentWsUrl) {
+                    if (data.uploading) {
+                        messageContent = `
+                            <div class="file-preview" style="opacity: 0.7;">
+                                <div class="file-preview-header">
+                                    <div class="file-icon">⏳</div>
+                                    <div class="file-info">
+                                        <div class="file-name">در حال آپلود...</div>
+                                        <div class="file-size">${escapeHtml(data.file_name)}</div>
+                                    </div>
+                                </div>
+                                <div class="file-preview-body">
+                                    <div style="text-align: center; color: var(--text-light); font-size: 13px;">لطفاً صبر کنید...</div>
+                                </div>
+                            </div>
+                        `;
+                    } else if (data.processing) {
+                        messageContent = `
+                            <div class="file-preview" style="opacity: 0.8;">
+                                <div class="file-preview-header">
+                                    <div class="file-icon">⚙️</div>
+                                    <div class="file-info">
+                                        <div class="file-name">در حال پردازش...</div>
+                                        <div class="file-size">${escapeHtml(data.original_file_name || data.file_name)}</div>
+                                    </div>
+                                </div>
+                                <div class="file-preview-body">
+                                    <div style="text-align: center; color: var(--text-light); font-size: 13px;">در حال بررسی فایل...</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        const fileName = data.file_name || data.content || 'فایل';
+                        const fileSize = data.file_size ? formatFileSize(data.file_size) : '';
+                        const fileExt = fileName.split('.').pop()?.toUpperCase() || 'FILE';
+                        let fileUrl = data.file_url;
+                        
+                        if (!fileUrl && data.file_path) {
                             try {
-                                const wsUrlObj = new URL(currentWsUrl);
-                                const protocol = wsUrlObj.protocol === 'wss:' ? 'https:' : 'http:';
-                                const baseUrl = `${protocol}//${wsUrlObj.host}`;
+                                const base = currentWsUrl ? new URL(currentWsUrl) : window.location;
+                                const protocol = base.protocol === 'wss:' ? 'https:' : (base.protocol === 'ws:' ? 'http:' : base.protocol);
+                                const baseUrl = `${protocol}//${base.host}`;
                                 let mediaPath = data.file_path;
                                 if (!mediaPath.startsWith('/media/')) {
                                     mediaPath = mediaPath.startsWith('/') ? `/media${mediaPath}` : `/media/${mediaPath}`;
@@ -530,37 +846,58 @@
                                 console.error('Error building file URL:', e);
                             }
                         }
-                    }
-                    
-                    if (!fileUrl && data.id) {
-                        if (currentWsUrl) {
+                        
+                        if (!fileUrl && data.id) {
                             try {
-                                const wsUrlObj = new URL(currentWsUrl);
-                                const protocol = wsUrlObj.protocol === 'wss:' ? 'https:' : 'http:';
-                                const baseUrl = `${protocol}//${wsUrlObj.host}`;
-                                const jwtToken = document.getElementById('jwtToken')?.value || '';
-                                fileUrl = jwtToken 
-                                    ? `${baseUrl}/api/v1/chat/messages/${data.id}/file/?token=${jwtToken}`
-                                    : `${baseUrl}/api/v1/chat/messages/${data.id}/file/`;
+                                const base = currentWsUrl ? new URL(currentWsUrl) : window.location;
+                                const protocol = base.protocol === 'wss:' ? 'https:' : (base.protocol === 'ws:' ? 'http:' : base.protocol);
+                                const baseUrl = `${protocol}//${base.host}`;
+                                fileUrl = `${baseUrl}/api/v1/chat/messages/${data.id}/file/`;
                             } catch (e) {
                                 console.error('Error building API URL:', e);
                             }
                         }
-                    }
-                    
-                    if (fileUrl && (data.file_type?.startsWith('image/') || fileName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))) {
-                        messageContent = `
-                            <div class="file-preview">
-                                <img src="${fileUrl}" alt="${escapeHtml(fileName)}" class="file-image" onerror="this.parentElement.innerHTML='<strong>📎 فایل:</strong> ${escapeHtml(fileName)} <a href=\\'${fileUrl}\\' class=\\'file-link\\' target=\\'_blank\\'>⬇️ دانلود</a>'">
-                            </div>
-                        `;
-                    } else {
-                        messageContent = `
-                            <div class="file-preview">
-                                <strong>📎 فایل:</strong> ${escapeHtml(fileName)}
-                                ${fileUrl ? `<a href="${fileUrl}" target="_blank" download="${escapeHtml(fileName)}" class="file-link">⬇️ دانلود</a>` : '<span style="color: var(--error); font-size: 12px;">فایل در دسترس نیست</span>'}
-                            </div>
-                        `;
+                        
+                        const isImage = data.file_type?.startsWith('image/') || fileName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+                        const fileIcon = getFileIcon(fileName, data.file_type);
+                        
+                        if (fileUrl && isImage) {
+                            messageContent = `
+                                <div class="file-preview">
+                                    <div class="file-preview-header">
+                                        <div class="file-icon">${fileIcon}</div>
+                                        <div class="file-info">
+                                            <div class="file-name">${escapeHtml(fileName)}</div>
+                                            ${fileSize ? `<div class="file-size">${fileSize}</div>` : ''}
+                                        </div>
+                                        <div class="file-type-badge">${fileExt}</div>
+                                    </div>
+                                    <div class="file-preview-body">
+                                        <div class="file-image-container">
+                                            <img src="${fileUrl}" alt="${escapeHtml(fileName)}" class="file-image" onerror="handleImageError(this, '${fileUrl}', '${escapeHtml(fileName)}')">
+                                        </div>
+                                        ${fileUrl ? `<div class="file-actions"><a href="#" onclick="downloadApiFile('${fileUrl}', '${escapeHtml(fileName)}'); return false;" class="file-link"><span class="file-link-icon">⬇️</span> دانلود فایل</a></div>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            const linkHtml = fileUrl ? `<div class="file-actions"><a href="#" onclick="downloadApiFile('${fileUrl}', '${escapeHtml(fileName)}'); return false;" class="file-link"><span class="file-link-icon">⬇️</span> دانلود فایل</a></div>` : '<div style="text-align: center; color: var(--error); font-size: 13px; padding: 12px;">فایل در دسترس نیست</div>';
+                            messageContent = `
+                                <div class="file-preview">
+                                    <div class="file-preview-header">
+                                        <div class="file-icon">${fileIcon}</div>
+                                        <div class="file-info">
+                                            <div class="file-name">${escapeHtml(fileName)}</div>
+                                            ${fileSize ? `<div class="file-size">${fileSize}</div>` : ''}
+                                        </div>
+                                        <div class="file-type-badge">${fileExt}</div>
+                                    </div>
+                                    <div class="file-preview-body">
+                                        ${linkHtml}
+                                    </div>
+                                </div>
+                            `;
+                        }
                     }
                 } else {
                     const displayData = { ...data };
@@ -585,12 +922,115 @@
             setTimeout(() => {
                 messages.scrollTop = messages.scrollHeight;
             }, 0);
+            
+            return message;
         }
         
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        function removeUploadingMessages() {
+            uploadingMessages.forEach((msgElement) => {
+                if (msgElement && msgElement.parentNode) {
+                    msgElement.remove();
+                }
+            });
+            uploadingMessages.clear();
+            console.log('🧹 Removed all uploading messages');
+        }
+        
+        function updateFileMessage(messageId, data) {
+            const messages = document.getElementById('messages');
+            const msgElement = messages.querySelector(`[data-message-id="${messageId}"]`);
+            
+            if (msgElement) {
+                console.log('✅ Updating file message:', messageId, 'with processed data');
+                const contentDiv = msgElement.querySelector('.message-content');
+                if (contentDiv) {
+                    const fileName = data.file_name || 'فایل';
+                    let fileUrl = data.file_url;
+                    
+                    if (!fileUrl && data.file_path) {
+                        try {
+                            const base = currentWsUrl ? new URL(currentWsUrl) : window.location;
+                            const protocol = base.protocol === 'wss:' ? 'https:' : (base.protocol === 'ws:' ? 'http:' : base.protocol);
+                            const baseUrl = `${protocol}//${base.host}`;
+                            let mediaPath = data.file_path;
+                            if (!mediaPath.startsWith('/media/')) {
+                                mediaPath = mediaPath.startsWith('/') ? `/media${mediaPath}` : `/media/${mediaPath}`;
+                            }
+                            fileUrl = `${baseUrl}${mediaPath}`;
+                        } catch (e) {
+                            console.error('Error building file URL:', e);
+                        }
+                    }
+                    
+                    if (!fileUrl) {
+                        try {
+                            const base = currentWsUrl ? new URL(currentWsUrl) : window.location;
+                            const protocol = base.protocol === 'wss:' ? 'https:' : (base.protocol === 'ws:' ? 'http:' : base.protocol);
+                            const baseUrl = `${protocol}//${base.host}`;
+                            fileUrl = `${baseUrl}/api/v1/chat/messages/${messageId}/file/`;
+                        } catch (e) {
+                            console.error('Error building API URL:', e);
+                        }
+                    }
+                    
+                    const fileSize = data.file_size ? formatFileSize(data.file_size) : '';
+                    const fileExt = fileName.split('.').pop()?.toUpperCase() || 'FILE';
+                    const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+                    const fileIcon = getFileIcon(fileName, data.file_type);
+                    
+                    let newContent = '';
+                    if (fileUrl && isImage) {
+                        newContent = `
+                            <div class="file-preview">
+                                <div class="file-preview-header">
+                                    <div class="file-icon">${fileIcon}</div>
+                                    <div class="file-info">
+                                        <div class="file-name">${escapeHtml(fileName)}</div>
+                                        ${fileSize ? `<div class="file-size">${fileSize}</div>` : ''}
+                                    </div>
+                                    <div class="file-type-badge">${fileExt}</div>
+                                </div>
+                                <div class="file-preview-body">
+                                    <div class="file-image-container">
+                                        <img src="${fileUrl}" alt="${escapeHtml(fileName)}" class="file-image" onerror="handleImageError(this, '${fileUrl}', '${escapeHtml(fileName)}')">
+                                    </div>
+                                    <div class="file-actions"><a href="#" onclick="downloadApiFile('${fileUrl}', '${escapeHtml(fileName)}'); return false;" class="file-link"><span class="file-link-icon">⬇️</span> دانلود فایل</a></div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        const linkHtml = fileUrl ? `<div class="file-actions"><a href="#" onclick="downloadApiFile('${fileUrl}', '${escapeHtml(fileName)}'); return false;" class="file-link"><span class="file-link-icon">⬇️</span> دانلود فایل</a></div>` : '<div style="text-align: center; color: var(--error); font-size: 13px; padding: 12px;">فایل در دسترس نیست</div>';
+                        newContent = `
+                            <div class="file-preview">
+                                <div class="file-preview-header">
+                                    <div class="file-icon">${fileIcon}</div>
+                                    <div class="file-info">
+                                        <div class="file-name">${escapeHtml(fileName)}</div>
+                                        ${fileSize ? `<div class="file-size">${fileSize}</div>` : ''}
+                                    </div>
+                                    <div class="file-type-badge">${fileExt}</div>
+                                </div>
+                                <div class="file-preview-body">
+                                    ${linkHtml}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    contentDiv.innerHTML = newContent;
+                    console.log('✅ File message updated:', messageId);
+                } else {
+                    console.warn('⚠️ Content div not found for message:', messageId);
+                }
+            } else {
+                console.warn('⚠️ Message not found:', messageId);
+            }
         }
         
         function clearFile() {
@@ -617,14 +1057,14 @@
             const endpointType = document.getElementById('endpointType').value;
             
             if (!jwtToken) {
-                alert('لطفاً توکن JWT را وارد کنید!');
+                showAlert('لطفاً توکن JWT را وارد کنید!', 'warning');
                 return;
             }
             
             let url;
             if (endpointType === 'chat') {
                 if (!chatId) {
-                    alert('لطفاً شناسه چت را وارد کنید!');
+                    showAlert('لطفاً شناسه چت را وارد کنید!', 'warning');
                     return;
                 }
                 url = `${wsUrl}/ws/chat/${chatId}/?token=${jwtToken}`;
@@ -652,9 +1092,39 @@
                             return;
                         }
                     }
+                    if (data.type === 'file_upload_started') {
+                        console.log('📥 file_upload_started received:', data);
+                        removeUploadingMessages();
+                        
+                        addMessage('در حال پردازش', { 
+                            content: `در حال پردازش: ${data.file_name}`,
+                            message_type: 'file',
+                            file_name: data.file_name,
+                            processing: true,
+                            task_id: data.task_id
+                        }, 'sent');
+                        return;
+                    }
+                    
+                    if (data.type === 'upload_failed') {
+                        console.log('📥 upload_failed received:', data);
+                        showUploadFailed(data.reason);
+                        removeUploadingMessages();
+                        return;
+                    }
                     
                     const direction = data.is_sent === true ? 'sent' : 'received';
-                    addMessage(data.type || 'پیام', data, direction);
+                    
+                    if (data.id) {
+                        const messages = document.getElementById('messages');
+                        const existing = messages.querySelector(`[data-message-id="${data.id}"]`);
+                        if (existing) {
+                            console.log('⚠️ Message already exists in UI, skipping:', data.id);
+                            return;
+                        }
+                    }
+                    
+                    addMessage(data.type || 'پیام', data, direction)
                 };
                 
                 ws.onerror = function(error) {
@@ -705,27 +1175,49 @@
         
         async function sendMessage() {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
-                alert('WebSocket متصل نیست!');
+                showAlert('WebSocket متصل نیست!', 'warning');
                 return;
             }
             
             const messageType = document.getElementById('messageType').value;
             let message = { type: messageType };
+            let shouldRenderOptimistic = true;
             
             if (messageType === 'chat_message') {
                 const msgType = document.getElementById('messageTypeSelect').value;
                 message.message_type = msgType;
                 
                 if (selectedFile && msgType === 'file') {
+                    const maxFileSize = 10 * 1024 * 1024;
+                    if (selectedFile.size > maxFileSize) {
+                        showAlert(`حجم فایل نباید بیشتر از ${maxFileSize / 1024 / 1024} مگابایت باشد!`, 'warning');
+                        return;
+                    }
+                    
+                    shouldRenderOptimistic = false;
+                    const uploadingMsg = addMessage('در حال آپلود', { 
+                        content: `در حال آپلود: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(2)} KB)`,
+                        message_type: 'file',
+                        file_name: selectedFile.name,
+                        uploading: true
+                    }, 'sent');
+                    
+                    const tempId = Date.now();
+                    uploadingMessages.set(tempId, uploadingMsg);
+                    
                     try {
+                        console.log('📤 Starting file upload:', selectedFile.name, selectedFile.size, 'bytes');
                         const base64Data = await fileToBase64(selectedFile);
+                        console.log('✅ File converted to base64, length:', base64Data.length);
                         message.file_data = base64Data;
                         message.file_name = selectedFile.name;
                         message.file_size = selectedFile.size;
                         message.file_type = selectedFile.type;
                         message.content = `File: ${selectedFile.name}`;
                     } catch (error) {
-                        alert('خطا در خواندن فایل: ' + error.message);
+                        console.error('❌ Error reading file:', error);
+                        removeUploadingMessages();
+                        showAlert('خطا در خواندن فایل: ' + error.message, 'error');
                         return;
                     }
                 } else {
@@ -737,8 +1229,18 @@
                 message.message_id = parseInt(document.getElementById('messageId').value);
             }
             
-            ws.send(JSON.stringify(message));
-            addMessage(messageType, message, 'sent');
+            try {
+                const messageStr = JSON.stringify(message);
+                console.log('📨 Sending WebSocket message, size:', messageStr.length, 'bytes');
+                ws.send(messageStr);
+                console.log('✅ WebSocket message sent successfully');
+                if (shouldRenderOptimistic) addMessage(messageType, message, 'sent');
+            } catch (error) {
+                console.error('❌ Error sending WebSocket message:', error);
+                removeUploadingMessages();
+                showAlert('خطا در ارسال پیام: ' + error.message, 'error');
+                return;
+            }
             
             document.getElementById('messageContent').value = '';
             clearFile();
@@ -754,6 +1256,132 @@
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
+        }
+        
+        async function downloadApiFile(url, filename) {
+            const jwtToken = document.getElementById('jwtToken')?.value || '';
+            if (!jwtToken) {
+                showAlert('توکن JWT وارد نشده است', 'warning');
+                return;
+            }
+            try {
+                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${jwtToken}` } });
+                if (!res.ok) {
+                    const text = await res.text();
+                    showAlert(`خطای دانلود (${res.status}): ${text || 'نامشخص'}`, 'error');
+                    return;
+                }
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                const objectUrl = URL.createObjectURL(blob);
+                a.href = objectUrl;
+                a.download = filename || 'file';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(objectUrl);
+            } catch (e) {
+                showAlert('خطا در دانلود فایل', 'error');
+                console.error(e);
+            }
+        }
+        
+        const activePollTasks = new Map(); // Track active polling to stop on failure
+        
+        async function pollTaskStatus(taskId, messageId) {
+            const jwtToken = document.getElementById('jwtToken')?.value || '';
+            if (!jwtToken || !taskId) return;
+            
+            const maxAttempts = 30;
+            let attempts = 0;
+            let cancelled = false;
+            
+            // Store cancel function
+            activePollTasks.set(messageId, () => {
+                cancelled = true;
+                console.log('🛑 Polling cancelled for message:', messageId);
+            });
+            
+            const checkStatus = async () => {
+                if (cancelled) {
+                    activePollTasks.delete(messageId);
+                    return;
+                }
+                
+                attempts++;
+                try {
+                    const base = currentWsUrl ? new URL(currentWsUrl) : window.location;
+                    const protocol = base.protocol === 'wss:' || base.protocol === 'ws:' ? 'http:' : base.protocol;
+                    const baseUrl = `${protocol}//${base.host}`;
+                    const url = `${baseUrl}/api/v1/chat/tasks/${taskId}/`;
+                    
+                    const res = await fetch(url, {
+                        headers: { 'Authorization': `Bearer ${jwtToken}` }
+                    });
+                    
+                    if (!res.ok) {
+                        console.error('Task status check failed:', res.status);
+                        if (attempts < maxAttempts && !cancelled) {
+                            setTimeout(checkStatus, 2000);
+                        } else {
+                            activePollTasks.delete(messageId);
+                        }
+                        return;
+                    }
+                    
+                    const data = await res.json();
+                    console.log('Task status:', data);
+                    
+                    if (data.status === 'SUCCESS') {
+                        console.log('✅ Task completed successfully');
+                        activePollTasks.delete(messageId);
+                        return;
+                    } else if (data.status === 'FAILURE') {
+                        console.error('❌ Task failed');
+                        activePollTasks.delete(messageId);
+                        showUploadFailed('processing_failed');
+                        return;
+                    } else if (data.status === 'PENDING' || data.status === 'STARTED') {
+                        if (attempts < maxAttempts && !cancelled) {
+                            setTimeout(checkStatus, 2000);
+                        } else {
+                            activePollTasks.delete(messageId);
+                            if (!cancelled) {
+                                console.error('⏱️ Task timeout');
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error checking task status:', e);
+                    if (attempts < maxAttempts && !cancelled) {
+                        setTimeout(checkStatus, 2000);
+                    } else {
+                        activePollTasks.delete(messageId);
+                    }
+                }
+            };
+            
+            setTimeout(checkStatus, 1000);
+        }
+        
+        function showUploadFailed(reason) {
+            const map = {
+                unsupported_type: 'فرمت فایل پشتیبانی نمی‌شود.',
+                image_unprocessable: 'پردازش تصویر ممکن نبود.',
+                document_too_large: 'حجم فایل بیشتر از ۲ مگابایت است.',
+                missing_extension: 'فایل باید دارای پسوند باشد.',
+                file_save_error: 'خطا در ذخیره‌سازی فایل.',
+                processing_failed: 'خطا در پردازش فایل.',
+            };
+            const text = map[reason] || 'آپلود فایل انجام نشد.';
+            const popup = document.getElementById('uploadFailedPopup');
+            const reasonEl = document.getElementById('uploadFailedReason');
+            const okBtn = document.getElementById('uploadFailedOk');
+            reasonEl.textContent = text;
+            popup.style.display = 'flex';
+            const close = () => { popup.style.display = 'none'; };
+            okBtn.onclick = close;
+            popup.onclick = (e) => { if (e.target === popup) close(); };
         }
         
         document.getElementById('messageType').addEventListener('change', function() {
@@ -775,6 +1403,92 @@
             const endpointType = this.value;
             document.getElementById('chatId').parentElement.style.display = endpointType === 'chat' ? 'block' : 'none';
         });
+        
+        function formatFileSize(bytes) {
+            if (!bytes) return '';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        function getFileIcon(fileName, fileType) {
+            const ext = fileName.split('.').pop()?.toLowerCase() || '';
+            if (fileType?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return '🖼️';
+            if (fileType?.startsWith('video/') || ['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) return '🎥';
+            if (fileType?.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) return '🎵';
+            if (['pdf'].includes(ext)) return '📄';
+            if (['doc', 'docx'].includes(ext)) return '📝';
+            if (['xls', 'xlsx'].includes(ext)) return '📊';
+            if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '📦';
+            if (['txt'].includes(ext)) return '📃';
+            return '📎';
+        }
+        
+        function handleImageError(img, fileUrl, fileName) {
+            const container = img.parentElement;
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: var(--text-light);">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
+                    <div style="font-size: 13px; margin-bottom: 12px;">${escapeHtml(fileName)}</div>
+                    <a href="#" onclick="downloadApiFile('${fileUrl}', '${escapeHtml(fileName)}'); return false;" class="file-link">
+                        <span class="file-link-icon">⬇️</span> دانلود فایل
+                    </a>
+                </div>
+            `;
+        }
+        
+        function showAlert(message, type = 'error', title = null) {
+            const existingPopup = document.getElementById('alertPopup');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+            
+            const popup = document.createElement('div');
+            popup.className = 'alert-popup';
+            popup.id = 'alertPopup';
+            
+            const configs = {
+                error: { icon: '⚠️', title: 'خطا', bg: 'linear-gradient(135deg, var(--error) 0%, #dc2626 100%)' },
+                success: { icon: '✅', title: 'موفق', bg: 'linear-gradient(135deg, var(--success) 0%, #059669 100%)' },
+                warning: { icon: '⚠️', title: 'هشدار', bg: 'linear-gradient(135deg, var(--warning) 0%, #d97706 100%)' },
+                info: { icon: 'ℹ️', title: 'اطلاعات', bg: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)' }
+            };
+            
+            const config = configs[type] || configs.error;
+            
+            popup.innerHTML = `
+                <div class="alert-popup-content">
+                    <div class="alert-popup-header ${type}">
+                        <div class="alert-popup-icon">${config.icon}</div>
+                        <div class="alert-popup-title">${escapeHtml(title || config.title)}</div>
+                    </div>
+                    <div class="alert-popup-body">
+                        <div class="alert-popup-message">${escapeHtml(message)}</div>
+                        <div class="alert-popup-actions">
+                            <button class="alert-popup-btn alert-popup-btn-primary" onclick="this.closest('.alert-popup').remove()">متوجه شدم</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(popup);
+            setTimeout(() => popup.classList.add('show'), 10);
+            
+            popup.onclick = (e) => {
+                if (e.target === popup) {
+                    popup.remove();
+                }
+            };
+            
+            // Close on Escape key
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    popup.remove();
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+        }
     </script>
 </body>
 </html>
