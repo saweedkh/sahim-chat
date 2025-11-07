@@ -1,20 +1,27 @@
+# Django imports
 from django.utils.translation import gettext_lazy as _
-from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.db import database_sync_to_async
-from asgiref.sync import sync_to_async
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.conf import settings
-from .tasks import process_and_save_file_task
-from .models import Chat, Message
 
+# Third party imports
+from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from asgiref.sync import sync_to_async
+
+# Local imports
+from .models import Chat, Message
+from .tasks import process_and_save_file_task
+
+# Python imports
 import os
 import json
 import base64
-from logging import getLogger 
 from urllib.parse import unquote
 from datetime import datetime
+from logging import getLogger 
 
+# Constants
 User = get_user_model()
 logger = getLogger(__name__)
 
@@ -105,7 +112,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         if message:
             await self.broadcast_message(message)
-            # Mark all unread messages in this chat as read (including the new one)
             await self.mark_all_messages_as_read(user)
 
     async def handle_file_message(self, user, data):
@@ -186,7 +192,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def format_message_data(self, message):
         current_user = self.scope['user']
         
-        # Get message fields and sender safely in async context
         message_data = await self.get_message_fields(message)
         sender = await self.get_message_sender(message)
         sender_data = await self.get_user_data(sender)
@@ -311,7 +316,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def handle_read_receipt(self, data):
         user = self.scope['user']
-        # Mark all messages as read (simpler approach)
         await self.mark_all_messages_as_read(user)
         user_data = await self.get_user_data(user)
         
@@ -394,9 +398,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 message_type=message_type,
                 file_path=file_field
             )
-            # Refresh and prefetch sender to avoid async issues
             message.refresh_from_db()
-            # Prefetch sender to avoid lazy loading in async context
             message.sender = sender
             return message
             
